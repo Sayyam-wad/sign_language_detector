@@ -1058,52 +1058,12 @@ furnished to do so, subject to the following conditions:
 - **Discussions**: [Ask questions or share ideas](https://github.com/yourusername/asl-recognition-system/discussions)
 
 ### Maintainer
-- **Name**: [Your Name]
-- **Email**: your.email@example.com
-- **GitHub**: [@yourusername](https://github.com/yourusername)
-
-### Community
-- **Discord**: [Join our server](#)
-- **Twitter**: [@projecthandle](#)
+- **Name**: Sayyam Wadhwa
+- **Email**: sayyam.wad@gmail.com
 
 ---
 
-## 🎓 Citation
 
-If you use this project in your research, please cite:
 
-```bibtex
-@software{asl_recognition_2025,
-  author = {Your Name},
-  title = {ASL Recognition System: Dual-Mode Sign Language to Text},
-  year = {2025},
-  url = {https://github.com/yourusername/asl-recognition-system},
-  version = {1.0.0}
-}
-```
-
----
-
-## 📊 Project Stats
-
-![GitHub Stars](https://img.shields.io/github/stars/yourusername/asl-recognition-system?style=social)
-![GitHub Forks](https://img.shields.io/github/forks/yourusername/asl-recognition-system?style=social)
-![GitHub Issues](https://img.shields.io/github/issues/yourusername/asl-recognition-system)
-![GitHub Pull Requests](https://img.shields.io/github/issues-pr/yourusername/asl-recognition-system)
-![Last Commit](https://img.shields.io/github/last-commit/yourusername/asl-recognition-system)
-
----
-
-## ⭐ Star History
-
-If you find this project useful, please consider giving it a star! ⭐
-
----
-
-<div align="center">
-
-**Made with ❤️ for accessibility**
-
-[⬆ Back to Top](#asl-recognition-system---sign-language-to-text--speech)
 
 </div>
