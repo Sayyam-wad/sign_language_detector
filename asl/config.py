@@ -25,6 +25,7 @@ ARTIFACTS_DIR = _env("ARTIFACTS_DIR", ROOT / "artifacts")
 FEATURES_PATH = ARTIFACTS_DIR / "features.npz"
 MODEL_PATH = _env("MODEL_PATH", ARTIFACTS_DIR / "model.joblib")
 REPORT_DIR = ARTIFACTS_DIR / "report"
+WEB_MODEL_PATH = ROOT / "web" / "model.json"
 
 # ── Camera ────────────────────────────────────────────────────────────────────
 CAMERA_INDEX = _env("CAMERA_INDEX", 0)

@@ -4,7 +4,7 @@ import pytest
 from asl.dataset import group_for
 from asl.labels import LETTER, NAME_TO_ID, PHRASE, name_of
 from asl.recognizer import SignRecognizer, WordBuilder
-from tests.synthetic import hand_points, make_dataset
+from asl.synthetic import hand_points, make_dataset
 
 
 def test_group_names(tmp_path):

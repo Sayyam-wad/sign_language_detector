@@ -36,7 +36,7 @@
     "phrase_mode_accuracy": 1.0
   },
   "random_split_accuracy": 1.0,
-  "latency_ms": 0.4712449950000064,
+  "latency_ms": 0.6475084499999184,
   "per_class": [
     {
       "class": "A",
@@ -326,5 +326,34 @@
       "support": 20
     }
   ],
-  "top_confusions": []
+  "top_confusions": [],
+  "novelty": {
+    "quantile": 0.97,
+    "threshold": 3.0708192434056523,
+    "held_out_signs_accepted": 0.965559655596556,
+    "unseen_signs_rejected": 0.7906931964056483,
+    "tradeoff": [
+      {
+        "quantile": 0.99,
+        "held_out_signs_accepted": 0.995079950799508,
+        "unseen_signs_rejected": 0.3559050064184852
+      },
+      {
+        "quantile": 0.97,
+        "held_out_signs_accepted": 0.965559655596556,
+        "unseen_signs_rejected": 0.7906931964056483
+      },
+      {
+        "quantile": 0.95,
+        "held_out_signs_accepted": 0.955719557195572,
+        "unseen_signs_rejected": 0.8987804878048781
+      },
+      {
+        "quantile": 0.9,
+        "held_out_signs_accepted": 0.9015990159901599,
+        "unseen_signs_rejected": 0.9963414634146341
+      }
+    ]
+  },
+  "web_model_test_accuracy": 0.9876998769987699
 }

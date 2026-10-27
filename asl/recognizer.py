@@ -38,6 +38,7 @@ class SignRecognizer:
         if bundle.get("feature_version") != FEATURE_VERSION:
             raise ValueError("Model was trained with different features; retrain with python -m asl.train")
         self.model = bundle["model"]
+        self.novelty = bundle.get("novelty")  # None for models trained before the detector existed
         self.classes = [int(c) for c in bundle["classes"]]
         self.smoothing = smoothing
         self.min_confidence = min_confidence
@@ -59,8 +60,7 @@ class SignRecognizer:
         self._state = None
 
     def class_probabilities(self, points: np.ndarray, handedness: str) -> np.ndarray:
-        x = landmark_features(points, handedness)[None, :]
-        return self.model.predict_proba(x)[0]
+        return self.model.predict_proba(landmark_features(points, handedness)[None, :])[0]
 
     def mode_probabilities(self, class_probs: np.ndarray, mode: str) -> np.ndarray:
         """Merge look-alike classes into the labels valid in `mode`.
@@ -75,7 +75,14 @@ class SignRecognizer:
         if points is None:
             self.reset()
             return Prediction(None, 0.0, None)
-        p = self.mode_probabilities(self.class_probabilities(points, handedness), mode)
+        x = landmark_features(points, handedness)[None, :]
+        if self.novelty is not None and bool(self.novelty.is_novel(x)[0]):
+            # Not a pose we were trained on: contribute nothing this frame. Through
+            # the smoothing below, a few odd frames only dent the confidence, while a
+            # sustained unknown pose drives it under the threshold.
+            p = np.zeros(len(self._labels[mode]))
+        else:
+            p = self.mode_probabilities(self.model.predict_proba(x)[0], mode)
         if self._state is None or self._state_mode != mode or len(self._state) != len(p):
             self._state, self._state_mode = p, mode
         else:  # exponential moving average over frames
@@ -84,6 +91,8 @@ class SignRecognizer:
         order = np.argsort(self._state)[::-1]
         top3 = [(labels[i], float(self._state[i])) for i in order[:3]]
         best, conf = top3[0]
+        if conf <= 1e-6:  # only unknown poses so far
+            return Prediction(None, 0.0, None)
         return Prediction(best if conf >= self.min_confidence else None, conf, best, top3)
 
 
@@ -154,6 +163,22 @@ class WordBuilder:
     def space(self) -> None:
         if self.text and not self.text.endswith(" "):
             self.text += " "
+
+    @property
+    def partial_word(self) -> str:
+        """Letters spelled since the last space (what suggestions complete)."""
+        last = self.text.split(" ")[-1]
+        return last if last.isalpha() else ""
+
+    def suggestions(self, n: int = 3) -> list[str]:
+        from asl.words import Suggester
+        return Suggester.default().suggest(self.partial_word, n)
+
+    def apply_suggestion(self, word: str) -> None:
+        """Replace the word being spelled with `word` and add a space."""
+        self.text = self.text[: len(self.text) - len(self.partial_word)] + word + " "
+        self._space_added = True
+        self._armed = False
 
     def backspace(self) -> None:
         self.text = self.text[:-1]

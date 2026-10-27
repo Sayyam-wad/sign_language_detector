@@ -10,7 +10,21 @@
 | Letter-mode accuracy (look-alikes merged) | 100.00% |
 | Phrase-mode accuracy (look-alikes merged) | 100.00% |
 | Accuracy with a random frame-level split (leaky) | 100.00% |
-| Inference latency (model only, per frame) | 0.47 ms |
+| Inference latency (model only, per frame) | 0.65 ms |
+| No-sign detector: held-out signs accepted | 96.6% |
+| No-sign detector: never-seen signs rejected | 79.1% |
+| Browser demo model (MLP) test accuracy | 98.77% |
+
+## No-sign detector trade-off
+
+Per frame. A sign held for a second spans ~30 frames and is smoothed, so a few rejected frames don't stop it from being typed.
+
+| Threshold (quantile of genuine distances) | Held-out signs accepted | Never-seen signs rejected |
+|---|---|---|
+| 0.99 | 99.5% | 35.6% |
+| 0.97 (used) | 96.6% | 79.1% |
+| 0.95 | 95.6% | 89.9% |
+| 0.90 | 90.2% | 99.6% |
 
 ## Model comparison (grouped CV on the training split)
 

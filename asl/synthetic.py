@@ -1,4 +1,4 @@
-"""Procedural hand landmarks for tests (no camera, images or MediaPipe needed).
+"""Procedural hand landmarks (used by tests and the novelty benchmark; no camera or MediaPipe needed).
 
 Each synthetic "sign" is a fixed set of finger curls plus a hand orientation;
 samples add pose noise, random scale, position and handedness.

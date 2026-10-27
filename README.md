@@ -1,117 +1,118 @@
-# Real-time ASL Recognition — Sign Language to Text & Speech
+# ASL fingerspelling recognition
 
 [![CI](https://github.com/Sayyam-wad/sign_language_detector/actions/workflows/ci.yml/badge.svg)](https://github.com/Sayyam-wad/sign_language_detector/actions/workflows/ci.yml)
-![Python](https://img.shields.io/badge/python-3.9--3.12-blue)
-![MediaPipe](https://img.shields.io/badge/MediaPipe-hands-orange)
 
-Recognises the 26 letters of the American Sign Language alphabet and 15 common gesture phrases from a webcam, turns them into text, and reads the text aloud. Recognition takes about 10 ms per frame on a single CPU core.
+Recognises the American Sign Language alphabet and 15 common gesture phrases from a webcam, turns them into text and reads the text out loud.
+
+**Try it in the browser:** https://sayyam-wad.github.io/sign_language_detector/ (needs a webcam; nothing is uploaded, everything runs in the page)
 
 <p align="center"><img src="docs/demo.gif" width="240" alt="Spelling HELLO letter by letter"></p>
-<p align="center"><sub>Pipeline demo: dataset frames played back as a clip; only the hand is shown.</sub></p>
 
-## Highlights
+## How it works
 
-- **Robust hand-shape features.** 85 features from MediaPipe's 21 hand landmarks — wrist-relative 3-D coordinates, 15 finger-joint angles and fingertip distances — normalised for hand size, camera aspect ratio and left/right hand. On held-out data, accuracy when the hand is 40% smaller (standing further back) goes from **26% → 100%** compared with the original distance features.
-- **Rotation augmentation in landmark space.** Rotated copies of every sample make the model tolerant to wrist tilt (40° tilt: **39% → 99.8%**) without collecting more images, while keeping the orientation cue that separates look-alike letters such as H/U and K/P.
-- **Leakage-aware evaluation.** Consecutive webcam frames are near-duplicates, so splits are made by recording session or frame block, the model is chosen by grouped cross-validation, and the test set is touched once. A separate robustness benchmark measures what actually breaks in real use.
-- **Mode-aware decoding.** Some phrases share a hand shape with a letter (NO ↔ C, PEACE ↔ V, …). In letter mode their probabilities are summed into the letter, in phrase mode into the phrase, instead of the model guessing between two near-identical classes.
-- **Usable app.** Probability smoothing, a confidence threshold, hold-to-type with a progress bar, automatic spaces, repeated letters (H-E-L-L-O), non-blocking text-to-speech, and a text-to-sign viewer. A headless mode turns a video file into a transcript.
-- **Engineering.** Installable package with CLI entry points, pinned dependencies, environment doctor, 19 unit tests (no camera needed), GitHub Actions CI.
+1. MediaPipe Hands finds 21 landmarks on the hand in each frame.
+2. The landmarks are turned into 85 features: wrist-relative 3D coordinates, the bend angle of every finger joint and the distances between fingertips. They are normalised so that hand size, distance from the camera, camera aspect ratio and left/right hand don't matter, while the direction the hand points (which separates H from U, K from P) is kept.
+3. A classifier (SVM in the Python app, a small neural network in the browser) predicts one of 41 signs.
+4. Predictions are smoothed over frames. Poses that don't look like any trained sign are ignored, and holding a sign for about a second types it.
+5. While you spell, the app suggests words (press 1, 2 or 3 to take one) and can correct a misread letter, for example HELLP to HELLO.
+
+```mermaid
+flowchart LR
+    A[Webcam frame] --> B[MediaPipe Hands<br/>21 landmarks]
+    B --> C[85 normalised features]
+    C --> D[Classifier<br/>41 signs]
+    D --> E[Smoothing and<br/>no-sign rejection]
+    E --> F[Hold to type,<br/>word suggestions]
+    F --> G[Text and speech]
+```
 
 ## Results
 
-Dataset: 4,100 images, 41 classes (100 per class), one signer. MediaPipe found a hand in 4,091 of them (99.8%).
+Trained and tested on 4,100 images of 41 signs (100 each) recorded by one person. Consecutive webcam frames are nearly identical, so the test set is made of whole blocks of frames that were never seen in training.
+
+| | |
+|---|---|
+| SVM accuracy on held-out frames | 100% |
+| Browser model accuracy on held-out frames | 98.8% |
+| Time per frame | about 10 ms on one CPU core (9.6 ms of it is MediaPipe) |
+
+Because the data comes from one person in one room, those numbers mostly show that the model is consistent. To check how it copes with a different setup, `asl.benchmark` changes the held-out hands (smaller, larger, tilted, other hand) and compares the current features with the original ones:
 
 ![Robustness benchmark](artifacts/report/robustness.png)
 
-| Scenario (test frames transformed) | Original features | New features | New + augmentation |
-|---|---|---|---|
-| Same conditions | 99.4% | 100.0% | 100.0% |
-| Hand 40% smaller (further from camera) | 25.7% | 100.0% | 100.0% |
-| Hand 40% larger (closer) | 66.3% | 100.0% | 100.0% |
-| 16:9 instead of 4:3 camera | 95.7% | 100.0% | 100.0% |
-| Other hand (mirror image) | 99.4% | 100.0% | 100.0% |
-| Wrist tilted 15° | 99.4% | 89.2% | 100.0% |
-| Wrist tilted 40° | 91.4% | 38.7% | 99.8% |
+| Change | Original features | Current features |
+|---|---|---|
+| Hand 40% smaller (standing back) | 25.7% | 100% |
+| Hand 40% larger | 66.3% | 100% |
+| 16:9 camera instead of 4:3 | 95.7% | 100% |
+| Other hand | 99.4% | 100% |
+| Wrist tilted 40° | 91.4% | 99.8% |
 
-Same SVM and the same grouped train/test split in every column; only the features differ. Full tables: [`artifacts/report/robustness.md`](artifacts/report/robustness.md) and [`artifacts/report/report.md`](artifacts/report/report.md).
+The "no sign" check ignores 79% of poses it was never trained on while accepting 96.6% of real signs frame by frame. More detail, including how this was measured, is in the [model card](docs/MODEL_CARD.md) and the [evaluation report](artifacts/report/report.md).
 
-**Reading these numbers honestly.** Every class in this dataset was recorded in a single session by one person, so held-out frames come from the same recording as the training frames. On that test the task is easy: all five model types reach 99.5–99.9% macro-F1 in grouped cross-validation, and the chosen SVM gets 100% on the held-out block. That measures consistency within a recording, not how well the model works for a new person or room. The robustness benchmark covers the geometric part of that gap; covering people and lighting needs more recordings — `python -m asl.collect` saves each run as a separate session and evaluation automatically keeps sessions apart.
+## Running it
 
-Latency, measured on one CPU core: MediaPipe hand detection ≈ 9.6 ms, features + SVM + smoothing ≈ 0.9 ms per frame (camera capture and drawing not included).
-
-## Quick start
+Python 3.9 to 3.12:
 
 ```bash
 git clone https://github.com/Sayyam-wad/sign_language_detector.git
 cd sign_language_detector
-python -m venv venv && source venv/bin/activate      # Windows: venv\Scripts\activate
-pip install -r requirements.txt                       # Python 3.9-3.12
-python -m asl.doctor                                  # checks packages, MediaPipe API, cameras
-python -m asl.app                                     # uses the trained model in artifacts/
+python -m venv venv
+venv\Scripts\activate            # on macOS/Linux: source venv/bin/activate
+pip install -e ".[speech]"
+asl-doctor                       # checks packages, MediaPipe and cameras
+asl-app                          # starts recognition with the included model
 ```
 
-### Train on your own data
+Keys in the app:
+
+| Key | Action |
+|---|---|
+| L / P | letters or phrases |
+| hold a sign | types it after about a second |
+| Enter | type the current sign now |
+| 1, 2, 3 | pick a suggested word |
+| Space, Backspace, C | space, delete, clear |
+| S | speak the text |
+| T | text to sign: type something and see how to sign it |
+| Q | quit |
+
+`asl-app --source video.mp4 --headless` prints what gets typed from a video file instead of opening a window.
+
+## Training on your own data
 
 ```bash
-python -m asl.collect A B C HELLO --count 60   # record signs (names or class ids); repeat on other days
-python -m asl.collect --list                   # images per class
-python -m asl.dataset                          # images -> landmarks -> features (artifacts/features.npz)
-python -m asl.train                            # grouped CV model selection, held-out test, report
-python -m asl.benchmark                        # robustness benchmark
+asl-collect A B C HELLO --count 60   # record signs; run it again on other days or with other people
+asl-dataset                          # images -> landmarks -> features
+asl-train                            # compares 5 models, writes artifacts/ and web/model.json
+asl-benchmark                        # robustness tests
+asl-atlas                            # updates the reference drawings of each sign
 ```
 
-Images live in `data/<class_id>/` (the class ids are listed in [`asl/labels.py`](asl/labels.py)). Settings can be overridden with environment variables, e.g. `ASL_CAMERA_INDEX=1`, `ASL_DATA_DIR=D:/my_data`, `ASL_HOLD_SECONDS=1.0`.
+Images go in `data/<class id>/` and the class ids are listed in `asl/labels.py`. Each run of `asl-collect` is saved as a separate session, and evaluation never mixes frames from the same session between training and testing, so recording more sessions gives a more realistic accuracy number. Settings such as `ASL_CAMERA_INDEX=1` or `ASL_HOLD_SECONDS=1.0` can be set as environment variables.
 
-### App controls
+## Project layout
 
-| Key | Action | Key | Action |
-|---|---|---|---|
-| `L` / `P` | letter / phrase mode | `A` | toggle hold-to-add |
-| hold a sign | adds it after ~1.2 s | `ENTER` | add the current sign now |
-| `SPACE` | space (also added after 2 s with no hand) | `BACKSPACE` | delete |
-| `S` | speak the text | `C` | clear |
-| `T` | text-to-sign viewer | `Q` / `ESC` | quit |
-
-`python -m asl.app --source clip.mp4 --headless` prints what gets typed from a video file.
-
-## How it works
-
-```mermaid
-flowchart LR
-    Cam[Webcam frame] --> MP[MediaPipe Hands<br/>21 landmarks]
-    MP --> N[Normalise<br/>pixel aspect · palm size · handedness]
-    N --> F[85 features<br/>coords · joint angles · tip distances]
-    F --> M[SVM classifier<br/>41 classes]
-    M --> D[Mode-aware decoding<br/>merge look-alike classes]
-    D --> S[EMA smoothing +<br/>confidence threshold]
-    S --> W[Hold-to-type<br/>word builder]
-    W --> T[Text · speech]
 ```
-
-| Module | Role |
-|---|---|
-| `asl/landmarks.py` | MediaPipe wrapper (static mode for photos, tracking for video) |
-| `asl/features.py` | feature extraction and normalisation |
-| `asl/augment.py` | rotation augmentation in landmark space |
-| `asl/dataset.py` | images → features, with session/block groups |
-| `asl/train.py` | model comparison, grouped evaluation, report |
-| `asl/benchmark.py` | robustness benchmark |
-| `asl/recognizer.py` | smoothing, mode-aware decoding, word builder (camera-independent, unit-tested) |
-| `asl/app.py`, `collect.py`, `doctor.py`, `tts.py` | app, data collection, environment check, speech |
-
-## What changed in v2
-
-The original scripts had several bugs that this version fixes:
-
-- **Fresh installs crashed.** MediaPipe 0.10.30+ removed the `mp.solutions.hands` API and the requirements were unpinned; the root `requirements.txt` contained `pip install` commands.
-- **No scale normalisation.** The README said the features were normalised by hand size; they weren't. Moving away from the camera changed every feature (26% accuracy at 0.6× size).
-- **Photos processed in video-tracking mode.** `static_image_mode=False` on unrelated dataset images let tracking state leak between them; detection confidence was 0.1.
-- **Signing "A" in letter mode printed "S"**, and repeated letters could never be added, so words like HELLO were impossible to spell.
-- **Model chosen on the test set**, the configured confidence threshold and hold timer were never used, speech froze the video, and paths were hard-coded to `E:/`.
+asl/
+  features.py      landmark features
+  augment.py       rotated copies for training
+  dataset.py       images to features
+  train.py         model comparison, evaluation, export
+  benchmark.py     robustness tests
+  novelty.py       "no sign" detection
+  recognizer.py    smoothing, letter/phrase modes, typing logic
+  words.py         word suggestions
+  atlas.py         reference drawing for each sign
+  app.py           webcam app
+  collect.py       recording training images
+web/               browser version (JavaScript port, checked against Python in CI)
+tests/             29 tests, no webcam needed
+```
 
 ## Limitations
 
-- J and Z are motion signs; a single-frame classifier only sees their final pose.
-- Trained on one signer. Expect lower accuracy for other people until more sessions are recorded.
-- Two-handed signs are not supported (one hand is tracked).
+- Trained on one person, so it will be less accurate for others until more people are recorded.
+- J and Z involve movement; only their end position is recognised.
+- One hand at a time, so two-handed signs aren't supported.
+- Five phrases share a hand shape with a letter (NO and C, for example). The letter/phrase switch decides which one is meant.

@@ -40,6 +40,7 @@ from asl import config
 from asl.augment import augment
 from asl.features import FEATURE_VERSION
 from asl.labels import LETTER, PHRASE, name_of, output_label
+from asl.novelty import NoveltyDetector
 
 SEED = config.RANDOM_STATE
 
@@ -128,6 +129,21 @@ def write_markdown(m: dict, path: Path) -> None:
     if m.get("random_split_accuracy") is not None:
         lines.append(f"| Accuracy with a random frame-level split (leaky) | {m['random_split_accuracy']:.2%} |")
     lines.append(f"| Inference latency (model only, per frame) | {m['latency_ms']:.2f} ms |")
+    if "novelty" in m:
+        lines.append(f"| No-sign detector: held-out signs accepted | {m['novelty']['held_out_signs_accepted']:.1%} |")
+        lines.append(f"| No-sign detector: never-seen signs rejected | {m['novelty']['unseen_signs_rejected']:.1%} |")
+        nov_lines = ["", "## No-sign detector trade-off", "",
+                     "Per frame. A sign held for a second spans ~30 frames and is smoothed, so a few rejected "
+                     "frames don't stop it from being typed.", "",
+                     "| Threshold (quantile of genuine distances) | Held-out signs accepted | Never-seen signs rejected |",
+                     "|---|---|---|"]
+        nov_lines += [f"| {r['quantile']:.2f}{' (used)' if r['quantile'] == m['novelty']['quantile'] else ''} | "
+                      f"{r['held_out_signs_accepted']:.1%} | {r['unseen_signs_rejected']:.1%} |"
+                      for r in m["novelty"]["tradeoff"]]
+    if "web_model_test_accuracy" in m:
+        lines.append(f"| Browser demo model (MLP) test accuracy | {m['web_model_test_accuracy']:.2%} |")
+    if "novelty" in m:
+        lines += nov_lines
     lines += ["", "## Model comparison (grouped CV on the training split)", "",
               "| Model | Macro-F1 (mean ± sd) |", "|---|---|"]
     for name, s in m["cv"].items():
@@ -142,7 +158,8 @@ def write_markdown(m: dict, path: Path) -> None:
 
 def train(features_path: Path, model_names: list[str], cv_folds: int = 4, refit_all: bool = True,
           out_model: Path = config.MODEL_PATH, report_dir: Path = config.REPORT_DIR,
-          augment_copies: int = 2) -> dict:
+          augment_copies: int = 2, web_out: Path | None = config.WEB_MODEL_PATH,
+          novelty_quantile: float = 0.97) -> dict:
     import joblib
     import sklearn
 
@@ -210,14 +227,60 @@ def train(features_path: Path, model_names: list[str], cv_folds: int = 4, refit_
                        "support": int(si)} for c, pi, ri, fi, si in zip(labels, p, r, f, s)],
         "top_confusions": top_confusions(cm, labels),
     }
+    # ── "no sign" rejection ──────────────────────────────────────────────────
+    def calibrated_novelty(idx):
+        """Fit on `idx`; threshold from out-of-fold distances of held-out groups within `idx`."""
+        oof = []
+        inner = StratifiedGroupKFold(n_splits=min(4, len(np.unique(groups[idx]))), shuffle=True, random_state=SEED)
+        for a, b in inner.split(X[idx], y[idx], groups[idx]):
+            oof.append(NoveltyDetector().fit(X[idx][a], y[idx][a]).score(X[idx][b]))
+        det = NoveltyDetector(quantile=novelty_quantile).fit(X[idx], y[idx])
+        det.oof_scores_ = np.concatenate(oof)
+        return det.calibrate(det.oof_scores_)
+
+    nov = calibrated_novelty(tr)
+    test_scores = nov.score(X[te])
+    # Unseen-sign test: leave each class out of the detector and see whether it gets rejected.
+    unseen = []
+    for c in np.unique(y):
+        keep = tr[y[tr] != c]
+        unseen.append(NoveltyDetector().fit(X[keep], y[keep]).score(X[te][y[te] == c]))
+    tradeoff = []
+    for q in (0.99, 0.97, 0.95, 0.90):
+        thr = float(np.quantile(nov.oof_scores_, q))
+        tradeoff.append({"quantile": q, "held_out_signs_accepted": float((test_scores <= thr).mean()),
+                         "unseen_signs_rejected": float(np.mean([(u > thr).mean() for u in unseen]))})
+    chosen = min(tradeoff, key=lambda r: abs(r["quantile"] - novelty_quantile))
+    accepted, rejected = chosen["held_out_signs_accepted"], [chosen["unseen_signs_rejected"]]
+    metrics["novelty"] = {"quantile": novelty_quantile, "threshold": nov.threshold_,
+                          "held_out_signs_accepted": accepted,
+                          "unseen_signs_rejected": float(np.mean(rejected)), "tradeoff": tradeoff}
+    print(f"No-sign detector: accepts {accepted:.1%} of held-out signs, "
+          f"rejects {np.mean(rejected):.1%} of signs it was never trained on")
+
     t = metrics["test"]
     print(f"\nHeld-out test (grouped): accuracy {t['accuracy']:.2%}, macro-F1 {t['macro_f1']:.2%}")
     print(f"Random frame-level split would report: {random_acc:.2%}")
 
+    if web_out is not None:  # small MLP that runs in the browser demo
+        web = fit(models["mlp"] if "mlp" in models else candidate_models()["mlp"], tr)
+        metrics["web_model_test_accuracy"] = float(accuracy_score(y[te], web.predict(X[te])))
+        print(f"Browser model (MLP) held-out accuracy: {metrics['web_model_test_accuracy']:.2%}")
+
+    everything = np.arange(len(y))
     if refit_all:
-        model = fit(models[best], np.arange(len(y)))
+        model = fit(models[best], everything)
+        nov = calibrated_novelty(everything)
+    if web_out is not None:
+        from asl.web_export import export
+        web = fit(candidate_models()["mlp"], everything if refit_all else tr)
+        sample = te[np.linspace(0, len(te) - 1, 6).astype(int)]  # real held-out hands for the parity test
+        parity = ([(d["landmarks"][i], str(d["handedness"][i])) for i in sample] if "landmarks" in d else None)
+        export(web, nov, web_out, metrics, parity)
+        print(f"Browser model: {web_out}")
     out_model.parent.mkdir(parents=True, exist_ok=True)
-    joblib.dump({"model": model, "classes": [int(c) for c in model.classes_], "feature_version": FEATURE_VERSION,
+    joblib.dump({"model": model, "novelty": nov, "classes": [int(c) for c in model.classes_],
+                 "feature_version": FEATURE_VERSION,
                  "metrics": metrics, "sklearn_version": sklearn.__version__, "python": platform.python_version(),
                  "trained_on": "all data" if refit_all else "train split"}, out_model)
 
@@ -239,8 +302,13 @@ def main(argv=None):
     p.add_argument("--augment", type=int, default=2, help="rotated copies per training sample (0 = off)")
     p.add_argument("--out", type=Path, default=config.MODEL_PATH)
     p.add_argument("--report-dir", type=Path, default=config.REPORT_DIR)
+    p.add_argument("--web-out", type=Path, default=config.WEB_MODEL_PATH, help="browser-demo model JSON")
+    p.add_argument("--no-web", action="store_true", help="skip exporting the browser-demo model")
+    p.add_argument("--novelty-quantile", type=float, default=0.97,
+                   help="no-sign threshold: lower rejects more unknown poses but also more real signs")
     a = p.parse_args(argv)
-    train(a.features, a.models, a.cv_folds, not a.no_refit, a.out, a.report_dir, a.augment)
+    train(a.features, a.models, a.cv_folds, not a.no_refit, a.out, a.report_dir, a.augment,
+          None if a.no_web else a.web_out, a.novelty_quantile)
 
 
 if __name__ == "__main__":

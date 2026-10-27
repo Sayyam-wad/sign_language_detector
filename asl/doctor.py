@@ -62,9 +62,8 @@ def main(argv=None):
 
     print("\nProject files")
     n_imgs = sum(1 for _ in config.DATA_DIR.glob("*/*.jpg")) if config.DATA_DIR.exists() else 0
-    check(f"dataset at {config.DATA_DIR}", n_imgs > 0, f"{n_imgs} images")
-    check(f"features at {config.FEATURES_PATH}", config.FEATURES_PATH.exists(), "python -m asl.dataset")
-    check(f"model at {config.MODEL_PATH}", config.MODEL_PATH.exists(), "python -m asl.train")
+    good &= check(f"model at {config.MODEL_PATH}", config.MODEL_PATH.exists(), "python -m asl.train")
+    print(f"  [--] training images: {n_imgs} in {config.DATA_DIR} (only needed to retrain)")
     print("\nAll good." if good else "\nFix the items marked !! above.")
     return 0 if good else 1
 

@@ -9,6 +9,7 @@ Keys
   ENTER      add the current sign now        SPACE      add a space
   BACKSPACE  delete last character           C          clear text
   A          toggle auto-add (hold a sign)   S          speak the text
+  1 / 2 / 3  accept a word suggestion
   T          text-to-sign viewer (ESC returns) Q / ESC  quit
 """
 
@@ -29,15 +30,26 @@ MODE_COLORS = {LETTER: (0, 220, 255), PHRASE: (255, 80, 255)}
 WINDOW = "ASL Recognition"
 
 
-def sign_image(label: str, data_dir: Path):
-    """First dataset image for a sign, used by the text-to-sign viewer."""
+_ATLAS: dict | None = None
+
+
+def sign_image(label: str, size: int = 140, data_dir: Path | None = None, photos: bool = False):
+    """Tile for the text-to-sign viewer: a skeleton from the sign atlas (no faces,
+    no dataset needed), or with photos=True the first dataset image."""
     import cv2
-    cid = NAME_TO_ID.get(label)
-    folder = data_dir / str(cid) if cid is not None else None
-    if folder is None or not folder.exists():
-        return None
-    files = sorted(folder.glob("*.jpg"))
-    return cv2.imread(str(files[0])) if files else None
+    global _ATLAS
+    if photos and data_dir is not None:
+        cid = NAME_TO_ID.get(label)
+        files = sorted((data_dir / str(cid)).glob("*.jpg")) if cid is not None else []
+        if files:
+            return cv2.resize(cv2.imread(str(files[0])), (size, size))
+    if _ATLAS is None:
+        from asl.atlas import load
+        _ATLAS = load()
+    if label in _ATLAS:
+        from asl.atlas import render
+        return render(_ATLAS[label], size, label)
+    return None
 
 
 def text_to_sign_tokens(text: str) -> list[str]:
@@ -62,7 +74,7 @@ def text_to_sign_tokens(text: str) -> list[str]:
     return out
 
 
-def draw_text_to_sign(frame_shape, text: str, data_dir: Path):
+def draw_text_to_sign(frame_shape, text: str, data_dir: Path, photos: bool = False):
     import cv2
     h, w = frame_shape[:2]
     canvas = np.zeros((h, w, 3), dtype=np.uint8)
@@ -70,9 +82,10 @@ def draw_text_to_sign(frame_shape, text: str, data_dir: Path):
     cv2.putText(canvas, f"> {text}_", (10, 80), cv2.FONT_HERSHEY_SIMPLEX, 0.9, (255, 255, 0), 2)
     x, y, size = 10, 110, 140
     for token in text_to_sign_tokens(text)[-((w - 10) // (size + 10)) * 2:]:
-        img = sign_image(token, data_dir)
-        tile = cv2.resize(img, (size, size)) if img is not None else np.full((size, size, 3), 40, np.uint8)
-        cv2.putText(tile, token[:10], (5, 22), cv2.FONT_HERSHEY_SIMPLEX, 0.6, (0, 255, 255), 2)
+        tile = sign_image(token, size, data_dir, photos)
+        if tile is None:
+            tile = np.full((size, size, 3), 40, np.uint8)
+            cv2.putText(tile, token[:10], (5, 22), cv2.FONT_HERSHEY_SIMPLEX, 0.6, (0, 255, 255), 2)
         if x + size > w:
             x, y = 10, y + size + 10
         if y + size > h:
@@ -105,7 +118,16 @@ def draw_overlay(frame, mode, pred, builder, auto, fps, now):
             cv2.rectangle(frame, (200, 108), (200 + int(200 * prog), 114), (255, 255, 0), -1)
         alts = "  ".join(f"{lab} {p:.0%}" for lab, p in pred.top3[1:])
         cv2.putText(frame, alts, (420, 104), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (200, 200, 200), 1)
-    cv2.putText(frame, "L/P mode  ENTER add  SPACE  BKSP  C clear  A auto  S speak  T text->sign  Q quit",
+    suggestions = builder.suggestions() if mode == LETTER else []
+    if suggestions:
+        x = 10
+        for i, word in enumerate(suggestions, 1):
+            label = f"{i}:{word}"
+            (tw, th), _ = cv2.getTextSize(label, cv2.FONT_HERSHEY_SIMPLEX, 0.6, 1)
+            cv2.rectangle(frame, (x - 4, h - 52), (x + tw + 4, h - 30), (60, 60, 60), -1)
+            cv2.putText(frame, label, (x, h - 36), cv2.FONT_HERSHEY_SIMPLEX, 0.6, (255, 255, 255), 1)
+            x += tw + 16
+    cv2.putText(frame, "L/P mode  ENTER add  1-3 word  C clear  S speak  T text->sign  Q quit",
                 (10, h - 12), cv2.FONT_HERSHEY_SIMPLEX, 0.45, (255, 255, 255), 1)
 
 
@@ -192,6 +214,11 @@ def run(source, model_path: Path, headless: bool, mode: str, data_dir: Path) -> 
                 speaker.say(builder.text)
             elif key == ord("t"):
                 typing, typed = True, ""
+            elif key in (ord("1"), ord("2"), ord("3")):
+                options = builder.suggestions()
+                choice = key - ord("1")
+                if choice < len(options):
+                    builder.apply_suggestion(options[choice])
     finally:
         detector.close()
         cap.release()

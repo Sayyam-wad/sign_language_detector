@@ -3,7 +3,7 @@ import pytest
 
 from asl.features import N_FEATURES, landmark_features, normalize_landmarks
 from asl.labels import CLASSES, LETTER, LETTERS, PHRASE, PHRASES, output_label
-from tests.synthetic import hand_points
+from asl.synthetic import hand_points
 
 CURLS = np.array([0.2, 0.0, 0.9, 0.9, 0.1])
 
