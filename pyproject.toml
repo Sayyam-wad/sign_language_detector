@@ -1,0 +1,18 @@
+[project]
+name = "asl-recognizer"
+version = "2.0.0"
+description = "Real-time American Sign Language recognition from MediaPipe hand landmarks"
+requires-python = ">=3.9,<3.13"
+readme = "README.md"
+
+[tool.ruff]
+line-length = 120
+target-version = "py39"
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "B", "UP"]
+ignore = ["E501", "B905", "UP007", "UP045"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["."]
