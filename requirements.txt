@@ -1,6 +1,13 @@
-pip install numpy==1.23.5
-pip install scipy==1.10.1
-pip install scikit-learn==1.2.2
-pip install opencv-python
-pip install mediapipe
-pip install pyttsx3
+# Python 3.9 - 3.12
+# MediaPipe 0.10.30+ removed the `solutions` hand API this project uses.
+mediapipe>=0.10.9,<0.10.30
+opencv-python>=4.8
+numpy>=1.24,<2.0          # mediapipe 0.10.x wheels are built against NumPy 1.x
+scikit-learn>=1.3
+joblib>=1.3
+matplotlib>=3.7           # confusion-matrix plot in the training report
+pyttsx3>=2.90             # text to speech (optional)
+
+# development
+pytest>=7
+ruff>=0.4

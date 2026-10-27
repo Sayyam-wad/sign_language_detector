@@ -1,0 +1,359 @@
+{
+  "feature_version": 2,
+  "n_samples": 4091,
+  "n_train": 3278,
+  "n_test": 813,
+  "n_classes": 41,
+  "n_groups": 5,
+  "augmentation": "2 rotated copies per sample",
+  "cv": {
+    "svm": {
+      "mean": 0.9990836469749398,
+      "std": 0.001013527919506429
+    },
+    "logreg": {
+      "mean": 0.9975378459296204,
+      "std": 0.0035947369741281946
+    },
+    "rf": {
+      "mean": 0.9993898625665432,
+      "std": 0.0006101374334568921
+    },
+    "mlp": {
+      "mean": 0.9953728806709452,
+      "std": 0.00732683563241557
+    },
+    "knn": {
+      "mean": 0.9981649857830979,
+      "std": 0.0025234744788642134
+    }
+  },
+  "best_model": "svm",
+  "test": {
+    "accuracy": 1.0,
+    "macro_f1": 1.0,
+    "letter_mode_accuracy": 1.0,
+    "phrase_mode_accuracy": 1.0
+  },
+  "random_split_accuracy": 1.0,
+  "latency_ms": 0.6475084499999184,
+  "per_class": [
+    {
+      "class": "A",
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1": 1.0,
+      "support": 19
+    },
+    {
+      "class": "B",
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1": 1.0,
+      "support": 20
+    },
+    {
+      "class": "L",
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1": 1.0,
+      "support": 20
+    },
+    {
+      "class": "I LOVE YOU",
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1": 1.0,
+      "support": 20
+    },
+    {
+      "class": "YES",
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1": 1.0,
+      "support": 20
+    },
+    {
+      "class": "NO",
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1": 1.0,
+      "support": 20
+    },
+    {
+      "class": "OKAY",
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1": 1.0,
+      "support": 20
+    },
+    {
+      "class": "THANK YOU",
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1": 1.0,
+      "support": 20
+    },
+    {
+      "class": "RESTROOM",
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1": 1.0,
+      "support": 20
+    },
+    {
+      "class": "INFINITE VOID",
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1": 1.0,
+      "support": 20
+    },
+    {
+      "class": "HELLO",
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1": 1.0,
+      "support": 20
+    },
+    {
+      "class": "PEACE",
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1": 1.0,
+      "support": 20
+    },
+    {
+      "class": "GOOD",
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1": 1.0,
+      "support": 20
+    },
+    {
+      "class": "BAD",
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1": 1.0,
+      "support": 20
+    },
+    {
+      "class": "TAKE CARE",
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1": 1.0,
+      "support": 20
+    },
+    {
+      "class": "HOPE",
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1": 1.0,
+      "support": 20
+    },
+    {
+      "class": "I HATE YOU",
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1": 1.0,
+      "support": 20
+    },
+    {
+      "class": "BYE",
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1": 1.0,
+      "support": 20
+    },
+    {
+      "class": "C",
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1": 1.0,
+      "support": 20
+    },
+    {
+      "class": "D",
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1": 1.0,
+      "support": 20
+    },
+    {
+      "class": "E",
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1": 1.0,
+      "support": 20
+    },
+    {
+      "class": "F",
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1": 1.0,
+      "support": 20
+    },
+    {
+      "class": "G",
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1": 1.0,
+      "support": 20
+    },
+    {
+      "class": "H",
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1": 1.0,
+      "support": 20
+    },
+    {
+      "class": "I",
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1": 1.0,
+      "support": 20
+    },
+    {
+      "class": "J",
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1": 1.0,
+      "support": 20
+    },
+    {
+      "class": "K",
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1": 1.0,
+      "support": 20
+    },
+    {
+      "class": "M",
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1": 1.0,
+      "support": 20
+    },
+    {
+      "class": "N",
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1": 1.0,
+      "support": 20
+    },
+    {
+      "class": "O",
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1": 1.0,
+      "support": 20
+    },
+    {
+      "class": "P",
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1": 1.0,
+      "support": 17
+    },
+    {
+      "class": "Q",
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1": 1.0,
+      "support": 18
+    },
+    {
+      "class": "R",
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1": 1.0,
+      "support": 20
+    },
+    {
+      "class": "S",
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1": 1.0,
+      "support": 20
+    },
+    {
+      "class": "T",
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1": 1.0,
+      "support": 20
+    },
+    {
+      "class": "U",
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1": 1.0,
+      "support": 20
+    },
+    {
+      "class": "V",
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1": 1.0,
+      "support": 20
+    },
+    {
+      "class": "W",
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1": 1.0,
+      "support": 20
+    },
+    {
+      "class": "X",
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1": 1.0,
+      "support": 20
+    },
+    {
+      "class": "Y",
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1": 1.0,
+      "support": 19
+    },
+    {
+      "class": "Z",
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1": 1.0,
+      "support": 20
+    }
+  ],
+  "top_confusions": [],
+  "novelty": {
+    "quantile": 0.97,
+    "threshold": 3.0708192434056523,
+    "held_out_signs_accepted": 0.965559655596556,
+    "unseen_signs_rejected": 0.7906931964056483,
+    "tradeoff": [
+      {
+        "quantile": 0.99,
+        "held_out_signs_accepted": 0.995079950799508,
+        "unseen_signs_rejected": 0.3559050064184852
+      },
+      {
+        "quantile": 0.97,
+        "held_out_signs_accepted": 0.965559655596556,
+        "unseen_signs_rejected": 0.7906931964056483
+      },
+      {
+        "quantile": 0.95,
+        "held_out_signs_accepted": 0.955719557195572,
+        "unseen_signs_rejected": 0.8987804878048781
+      },
+      {
+        "quantile": 0.9,
+        "held_out_signs_accepted": 0.9015990159901599,
+        "unseen_signs_rejected": 0.9963414634146341
+      }
+    ]
+  },
+  "web_model_test_accuracy": 0.9876998769987699
+}

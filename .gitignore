@@ -1,20 +1,25 @@
-# Virtual environment
-venv/
+# Virtual environments
+venv*/
+.venv/
 
-# Training data (large image dataset)
-data/
+# Training images (large; kept locally)
+data/*
+!data/.gitkeep
 
-# Model / feature artifacts (regenerated from data/)
-*.pickle
-*.p
+# Generated artifacts: the trained model and evaluation report are committed,
+# the feature cache is not (rebuild with `python -m asl.dataset`).
+artifacts/*
+!artifacts/model.joblib
+!artifacts/report/
 
-# Python cache
+# Python
 __pycache__/
 *.pyc
+.pytest_cache/
+.ruff_cache/
 
-# Editor settings
+# Editors / OS
 .vscode/
-
-# Superseded / unused project folders
-asl/
-proj_asl/
+.idea/
+.DS_Store
+Thumbs.db
